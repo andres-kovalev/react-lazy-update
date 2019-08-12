@@ -18,7 +18,28 @@ const useLazyRef = (callback) => {
     return ref.current;
 };
 
+const isClassComponent = value => typeof value === 'function'
+    && !!value.prototype.render;
+
+const createLazyRenderer = (renderFunction) => {
+    const LazyRenderer = props => (
+        <LazyContext.Provider>
+            { renderFunction(props) }
+        </LazyContext.Provider>
+    );
+
+    LazyRenderer.displayName = 'LazyRenderer';
+
+    return LazyRenderer;
+};
+
 const lazy = (Component) => {
+    if (isClassComponent(Component)) {
+        throw new Error('Laziness can be applied only to functional components!');
+    }
+
+    const LazyRenderer = createLazyRenderer(Component);
+
     const WrappedComponent = (props) => {
         const [ , update ] = useReducer(updateReducer, 0);
 
@@ -40,7 +61,7 @@ const lazy = (Component) => {
 
                 return state;
             }) }>
-                <Component { ...props } />
+                <LazyRenderer { ...props } />
             </LazyContext.Provider>
         );
     };
