@@ -5,7 +5,8 @@ const lazy = require('../src/lazy');
 
 const { useLazyState } = lazy;
 
-function TestComponent() {
+// eslint-disable-next-line react/prop-types
+function TestComponent({ children }) {
     const [ state1, setState1 ] = useLazyState(0);
     const [ state2, setState2 ] = useLazyState(0);
 
@@ -15,7 +16,10 @@ function TestComponent() {
     }, 0);
 
     return (
-        <button onClick={ onClick } />
+        <div>
+            <button onClick={ onClick } />
+            { children }
+        </div>
     );
 }
 TestComponent.displayName = 'TestComponent';
@@ -25,6 +29,20 @@ describe('lazy', () => {
     let LazyComponent;
     beforeEach(() => {
         LazyComponent = lazy(TestComponent);
+    });
+
+    it('should throw an error for non-functional components', () => {
+        // eslint-disable-next-line react/prefer-stateless-function
+        class NonFunctionalComponent extends React.Component {
+            // eslint-disable-next-line class-methods-use-this
+            render() {
+                return <div />;
+            }
+        }
+
+        expect(() => {
+            lazy(NonFunctionalComponent);
+        }).toThrow();
     });
 
     it('should return new functional component', () => {
@@ -44,6 +62,18 @@ describe('useLazyState', () => {
     it('should throw an error when used in regular (not lazy) component', () => {
         expect(() => {
             shallow(<TestComponent />);
+        }).toThrow();
+    });
+
+    it('should throw an error when used in regular (not lazy) children of lazy component', () => {
+        const LazyComponent = lazy(TestComponent);
+
+        expect(() => {
+            mount(
+                <LazyComponent>
+                    <TestComponent />
+                </LazyComponent>
+            );
         }).toThrow();
     });
 
