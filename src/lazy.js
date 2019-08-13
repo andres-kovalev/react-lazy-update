@@ -95,9 +95,12 @@ const useLazyState = (defaultState) => {
         }
 
         states[index] = newState;
-        context.valid = false;
 
-        Promise.resolve().then(context.update);
+        if (context.valid) {
+            context.valid = false;
+
+            Promise.resolve().then(context.update);
+        }
     }, []);
 
     return [
