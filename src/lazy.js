@@ -6,6 +6,7 @@ const hoistStatics = require('hoist-non-react-statics');
 const emptyContext = Symbol('empty-context');
 const LazyContext = createContext(emptyContext);
 
+const identity = value => value;
 const updateReducer = value => value + 1;
 
 const useLazyRef = (callback) => {
@@ -19,7 +20,8 @@ const useLazyRef = (callback) => {
 };
 
 const isClassComponent = value => typeof value === 'function'
-    && !!value.prototype.render;
+    && value.prototype
+    && value.prototype.render;
 
 const createLazyRenderer = (renderFunction) => {
     const LazyRenderer = props => (
@@ -72,7 +74,7 @@ const lazy = (Component) => {
     return WrappedComponent;
 };
 
-const useLazyState = (defaultState) => {
+const createLazyHook = (initState, createStateUpdate) => (...hookArgs) => {
     const context = useContext(LazyContext);
     if (context === emptyContext) {
         throw new Error('useLazyState() hook can be called only by lazy components!');
@@ -82,13 +84,17 @@ const useLazyState = (defaultState) => {
     const index = useLazyRef(() => {
         // eslint-disable-next-line no-plusplus
         const id = context.id++;
-        states[id] = defaultState;
+        states[id] = initState(...hookArgs);
 
         return id;
     });
 
-    const setState = useCallback((newState) => {
+    const update = useRef();
+    update.current = createStateUpdate(...hookArgs);
+
+    const setState = useCallback((...updateArgs) => {
         const oldState = states[index];
+        const newState = update.current(oldState, ...updateArgs);
 
         if (newState === oldState) {
             return;
@@ -109,7 +115,20 @@ const useLazyState = (defaultState) => {
     ];
 };
 
+const setState = (oldState, newState) => newState;
+const useLazyState = createLazyHook(
+    identity,
+    () => setState
+);
+
+const useLazyReducer = createLazyHook(
+    (reducer, defaultState) => defaultState,
+    identity
+);
+
 module.exports = Object.assign(lazy, {
     useLazyState,
-    useState: useLazyState
+    useState: useLazyState,
+    useLazyReducer,
+    useReducer: useLazyReducer
 });

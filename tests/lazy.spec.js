@@ -3,29 +3,13 @@ const { shallow, mount } = require('enzyme');
 
 const lazy = require('../src/lazy');
 
-const { useLazyState } = lazy;
-
-// eslint-disable-next-line react/prop-types
-function TestComponent({ children }) {
-    const [ state1, setState1 ] = useLazyState(0);
-    const [ state2, setState2 ] = useLazyState(0);
-
-    const onClick = () => setTimeout(() => {
-        setState1(state1 + 1);
-        setState2(state2 + 1);
-    }, 0);
-
-    return (
-        <div>
-            <button onClick={ onClick } />
-            { children }
-        </div>
-    );
-}
-TestComponent.displayName = 'TestComponent';
-TestComponent.myStatic = {};
+const { useLazyState, useLazyReducer } = lazy;
 
 describe('lazy', () => {
+    const TestComponent = () => {};
+    TestComponent.displayName = 'TestComponent';
+    TestComponent.myStatic = {};
+
     let LazyComponent;
     beforeEach(() => {
         LazyComponent = lazy(TestComponent);
@@ -59,6 +43,88 @@ describe('lazy', () => {
 });
 
 describe('useLazyState', () => {
+    // eslint-disable-next-line react/prop-types
+    const TestComponent = ({ children }) => {
+        const [ state1, setState1 ] = useLazyState(0);
+        const [ state2, setState2 ] = useLazyState(0);
+
+        const onClick = () => setTimeout(() => {
+            setState1(state1 + 1);
+            setState2(state2 + 1);
+        }, 0);
+
+        return (
+            <div>
+                <button onClick={ onClick } />
+                { children }
+            </div>
+        );
+    };
+
+    it('should throw an error when used in regular (not lazy) component', () => {
+        expect(() => {
+            shallow(<TestComponent />);
+        }).toThrow();
+    });
+
+    it('should throw an error when used in regular (not lazy) children of lazy component', () => {
+        const LazyComponent = lazy(TestComponent);
+
+        expect(() => {
+            mount(
+                <LazyComponent>
+                    <TestComponent />
+                </LazyComponent>
+            );
+        }).toThrow();
+    });
+
+    it('should not throw an error when used in lazy component', () => {
+        const LazyComponent = lazy(TestComponent);
+
+        expect(() => {
+            mount(<LazyComponent />);
+        }).not.toThrow();
+    });
+
+    it('should delay rendering on state update', () => {
+        const ComponentSpy = jest.fn(TestComponent);
+        const LazyComponent = lazy(ComponentSpy);
+
+        jest.useFakeTimers();
+        const wrapper = mount(<LazyComponent />);
+
+        expect(ComponentSpy).toHaveBeenCalledTimes(1);
+
+        wrapper.find('button').simulate('click');
+        jest.runAllTimers();
+
+        return Promise.resolve().then(
+            () => expect(ComponentSpy).toHaveBeenCalledTimes(2)
+        );
+    });
+});
+
+describe('useLazyReducer', () => {
+    const reducer = value => value + 1;
+    // eslint-disable-next-line react/prop-types
+    const TestComponent = ({ children }) => {
+        const [ , dispatch1 ] = useLazyReducer(reducer, 0);
+        const [ , dispatch2 ] = useLazyReducer(reducer, 0);
+
+        const onClick = () => setTimeout(() => {
+            dispatch1();
+            dispatch2();
+        }, 0);
+
+        return (
+            <div>
+                <button onClick={ onClick } />
+                { children }
+            </div>
+        );
+    };
+
     it('should throw an error when used in regular (not lazy) component', () => {
         expect(() => {
             shallow(<TestComponent />);

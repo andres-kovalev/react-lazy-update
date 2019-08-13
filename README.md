@@ -50,6 +50,9 @@ Fortunatelly React handles such cases - state update will be postponed (called a
 const Button = () => {
     console.log('render');
 
+    const [ value1, setValue1 ] = useState(0);
+    const [ value2, setValue2 ] = useState(0);
+
     const onClick = () => {
         console.log('onClick');
         setValue1(1);
@@ -167,3 +170,29 @@ render
 ```
 
 Nice again! =)
+
+## useReducer (useLazyReducer)
+
+We can also replace `React.useReducer()` hook with `useLazyReducer()` provided by `react-lazy-update`:
+
+```js
+import lazy, { useLazyReduccer } from 'react-lazy-update';
+
+const Button = () => {
+    const [ value1, dispatch1 ] = useLazyReduccer(reducer1, 0);
+    const [ value2, dispatch2 ] = useLazyReduccer(reducer2, 0);
+
+    const onClick = () => {
+        setValue1(actionCreator1('click'));
+        setValue2(actionCreator2('click'));
+    };
+
+    return (
+        <button onClick={ onClick }>update me</button>
+    );
+}
+
+export default lazy(Button);
+```
+
+And, of course, we can use `useReducer()` alias to make life easier.
